@@ -16,7 +16,7 @@ from tensorboardX import SummaryWriter
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_path', type=str, default='/share/data/celeba')
 parser.add_argument('--data', type=str, choices=['celeba', 'cifar-10', 'lsun-bedrooms'], default='celeba')
-parser.add_argument('--mode', type=str, choices=['dcgan', 'lsgan', 'wgan', 'wgan-gp', 'gan-qp-l1', 'gan-qp-l2'], default='dcgan')
+parser.add_argument('--mode', type=str, choices=['dcgan', 'lsgan', 'wgan', 'lsgan-gp', 'wgan-gp', 'gan-qp-l1', 'gan-qp-l2'], default='dcgan')
 parser.add_argument('--batch_size', type=int, default=64)
 parser.add_argument('--n_workers', type=int, default=4)
 parser.add_argument('--n_iters', type=int, default=100000)
@@ -77,6 +77,7 @@ if args.seed is None:
 random.seed(args.seed)
 np.random.seed(args.seed)
 torch.manual_seed(args.seed)
+torch.cuda.manual_seed_all(args.seed)
 print('Manual seed:', args.seed)
 
 print(args)
@@ -156,3 +157,4 @@ for it in range(args.n_iters):
         vutils.save_image(x_fake, '{:s}/samples/{:06d}.jpg'.format(output_path, it+1), nrow=8, normalize=True, range=(-1., 1.))
     if (it+1) % args.save_interval == 0:
         gan.save('{:s}/checkpoints/weights.{:06d}.pth'.format(output_path, it+1))
+

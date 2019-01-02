@@ -34,10 +34,22 @@ WGAN
 CUDA_VISIBLE_DEVICES=0 python3 train.py --mode wgan --data celeba --d_iters 5 --g_iters 1 --gpu --ttur
 ```
 
+LSGAN
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python3 train.py --mode lsgan --data celeba --d_iters 1 --g_iters 1 --gpu --ttur
+```
+
 WGAN-GP
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 python3 train.py --mode wgan-gp --data celeba --d_iters 5 --g_iters 1 --gpu --ttur
+```
+
+LSGAN-GP
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python3 train.py --mode lsgan-gp --data celeba --d_iters 1 --g_iters 1 --gpu --ttur
 ```
 
 GAN-QP-L1
