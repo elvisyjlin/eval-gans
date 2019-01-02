@@ -12,6 +12,7 @@ from helpers import run_from_ipython
 from nn import GAN
 from tensorboardX import SummaryWriter
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_path', type=str, default='/share/data/celeba')
 parser.add_argument('--data', type=str, choices=['celeba', 'cifar-10', 'lsun-bedrooms'], default='celeba')
@@ -32,6 +33,8 @@ parser.add_argument('--log_interval', type=int, default=10)
 parser.add_argument('--sample_interval', type=int, default=100)
 parser.add_argument('--save_interval', type=int, default=1000)
 parser.add_argument('--eval_interval', type=int, default=1000)
+parser.add_argument('--ttur', action='store_true')
+parser.add_argument('--gpu', action='store_true')
 if run_from_ipython():
     # arguments when running in the Notebook
     args = parser.parse_args([
@@ -46,12 +49,25 @@ if run_from_ipython():
     get_ipython().run_line_magic('env', 'CUDA_VISIBLE_DEVICES=3')
 else:
     args = parser.parse_args()
-args.betas = (args.b1, args.b2)
+print(args)
 
-os.makedirs('{:s}/checkpoints'.format(args.mode), exist_ok=True)
-os.makedirs('{:s}/samples'.format(args.mode), exist_ok=True)
+output_path = '{:s}.{:s}'.format(args.mode, args.data)
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+os.makedirs('{:s}/checkpoints'.format(output_path), exist_ok=True)
+os.makedirs('{:s}/samples'.format(output_path), exist_ok=True)
+
+if args.ttur:
+    args.g_lr = args.lr * args.g_iters / args.g_iters
+    args.d_lr = args.lr * args.d_iters / args.g_iters
+    args.g_iters = 1
+    args.d_iters = 1
+else:
+    args.g_lr = args.lr
+    args.d_lr = args.lr
+args.g_betas = (args.b1, args.b2)
+args.d_betas = (args.b1, args.b2)
+
+device = torch.device('cuda' if torch.cuda.is_available() and args.gpu else 'cpu')
 n_gpu = torch.cuda.device_count()
 args.device = device
 print('Device:', device, '/', '# of gpu:', n_gpu)
@@ -62,6 +78,8 @@ random.seed(args.seed)
 np.random.seed(args.seed)
 torch.manual_seed(args.seed)
 print('Manual seed:', args.seed)
+
+print(args)
 
 def weights_init(m):
     if isinstance(m, (nn.Conv2d, nn.ConvTranspose2d)):
@@ -107,7 +125,7 @@ gan = GAN(args)
 gan.init(weights_init)
 fixed_z = torch.randn(args.n_samples, args.z_dim).to(args.device)
 
-writer = SummaryWriter('{:s}/summaries'.format(args.mode))
+writer = SummaryWriter('{:s}/summaries'.format(output_path))
 
 errD, errG = {}, {}
 for it in range(args.n_iters):
@@ -135,6 +153,6 @@ for it in range(args.n_iters):
     if (it+1) % args.sample_interval == 0:
         gan.eval()
         x_fake = gan.netG(fixed_z)
-        vutils.save_image(x_fake, '{:s}/samples/{:06d}.jpg'.format(args.mode, it+1), nrow=8, normalize=True, range=(-1., 1.))
+        vutils.save_image(x_fake, '{:s}/samples/{:06d}.jpg'.format(output_path, it+1), nrow=8, normalize=True, range=(-1., 1.))
     if (it+1) % args.save_interval == 0:
-        gan.save('{:s}/checkpoints/weights.{:06d}.pth'.format(args.mode, it+1))
+        gan.save('{:s}/checkpoints/weights.{:06d}.pth'.format(output_path, it+1))

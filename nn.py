@@ -86,8 +86,8 @@ class GAN():
         self.netG.to(self.device)
         self.netD = Discriminator()
         self.netD.to(self.device)
-        self.optimG = optim.Adam(self.netG.parameters(), lr=args.lr, betas=args.betas)
-        self.optimD = optim.Adam(self.netD.parameters(), lr=args.lr, betas=args.betas)
+        self.optimG = optim.Adam(self.netG.parameters(), lr=args.g_lr, betas=args.g_betas)
+        self.optimD = optim.Adam(self.netD.parameters(), lr=args.d_lr, betas=args.d_betas)
         self.vardict = {
             'netG': self.netG, 
             'netD': self.netD, 
