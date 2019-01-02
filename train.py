@@ -1,7 +1,7 @@
 import argparse
+import numpy as np
 import os
 import random
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.utils.data as data
@@ -10,10 +10,12 @@ import torchvision.utils as vutils
 from data import ImageFolder
 from helpers import run_from_ipython
 from nn import GAN
+from tensorboardX import SummaryWriter
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_path', type=str, default='/share/data/celeba')
-parser.add_argument('--mode', type=str, choices=['dcgan', 'lsgan', 'wgan', 'wgan-gp'], default='dcgan')
+parser.add_argument('--data', type=str, choices=['celeba', 'cifar-10', 'lsun-bedrooms'], default='celeba')
+parser.add_argument('--mode', type=str, choices=['dcgan', 'lsgan', 'wgan', 'wgan-gp', 'gan-qp-l1', 'gan-qp-l2'], default='dcgan')
 parser.add_argument('--batch_size', type=int, default=64)
 parser.add_argument('--n_workers', type=int, default=4)
 parser.add_argument('--n_iters', type=int, default=100000)
@@ -28,7 +30,7 @@ parser.add_argument('--seed', type=int, default=1234)
 parser.add_argument('--n_samples', type=int, default=64)
 parser.add_argument('--log_interval', type=int, default=10)
 parser.add_argument('--sample_interval', type=int, default=100)
-parser.add_argument('--save_interval', type=int, default=5000)
+parser.add_argument('--save_interval', type=int, default=1000)
 parser.add_argument('--eval_interval', type=int, default=1000)
 if run_from_ipython():
     # arguments when running in the Notebook
@@ -38,13 +40,16 @@ if run_from_ipython():
         '--d_iters', '1', 
         '--g_iters', '2'
     ])
+#     import matplotlib
+#     %matplotlib inline
+#     import matplotlib.pyplot as plt
     get_ipython().run_line_magic('env', 'CUDA_VISIBLE_DEVICES=3')
 else:
     args = parser.parse_args()
 args.betas = (args.b1, args.b2)
 
-os.makedirs('checkpoints', exist_ok=True)
-os.makedirs('samples', exist_ok=True)
+os.makedirs('{:s}/checkpoints'.format(args.mode), exist_ok=True)
+os.makedirs('{:s}/samples'.format(args.mode), exist_ok=True)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 n_gpu = torch.cuda.device_count()
@@ -82,7 +87,6 @@ def add_scalar_dict(writer, scalar_dict, iteration, directory=None):
         key_ = directory + '/' + key if directory is not None else key
         writer.add_scalar(key_, scalar_dict[key], iteration)
 
-
 transform = transforms.Compose([
     transforms.Resize(args.img_size),
     transforms.CenterCrop(args.img_size),
@@ -103,6 +107,9 @@ gan = GAN(args)
 gan.init(weights_init)
 fixed_z = torch.randn(args.n_samples, args.z_dim).to(args.device)
 
+writer = SummaryWriter('{:s}/summaries'.format(args.mode))
+
+errD, errG = {}, {}
 for it in range(args.n_iters):
     gan.train()
     make_trainable(gan.netD, True)
@@ -117,6 +124,8 @@ for it in range(args.n_iters):
         x_sample = next(data).to(args.device)
         z_sample = torch.randn(len(x_sample), args.z_dim).to(args.device)
         errG = gan.trainG(x_sample, z_sample)
+    add_scalar_dict(writer, errD, it+1, 'D')
+    add_scalar_dict(writer, errG, it+1, 'G')
         
     if (it+1) % args.log_interval == 0:
         print(
@@ -126,7 +135,6 @@ for it in range(args.n_iters):
     if (it+1) % args.sample_interval == 0:
         gan.eval()
         x_fake = gan.netG(fixed_z)
-        vutils.save_image(x_fake, 'samples/{:06d}.jpg'.format(it+1), nrow=8, normalize=True, range=(-1., 1.))
+        vutils.save_image(x_fake, '{:s}/samples/{:06d}.jpg'.format(args.mode, it+1), nrow=8, normalize=True, range=(-1., 1.))
     if (it+1) % args.save_interval == 0:
-        gan.save('checkpoints/weights.{:06d}.pth'.format(it+1))
-
+        gan.save('{:s}/checkpoints/weights.{:06d}.pth'.format(args.mode, it+1))
