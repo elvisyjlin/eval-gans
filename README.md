@@ -52,6 +52,12 @@ LSGAN-GP
 CUDA_VISIBLE_DEVICES=0 python3 train.py --mode lsgan-gp --data celeba --d_iters 1 --g_iters 1 --gpu --ttur
 ```
 
+DRAGAN
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python3 train.py --mode dragan --data celeba --d_iters 1 --g_iters 1 --gpu --ttur
+```
+
 GAN-QP-L1
 
 ```bash

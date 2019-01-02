@@ -14,11 +14,10 @@ from helpers import run_from_ipython
 from nn import GAN
 from tensorboardX import SummaryWriter
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_path', type=str, default='/share/data/celeba')
 parser.add_argument('--data', type=str, choices=['celeba', 'cifar-10', 'lsun-bedroom'], default='celeba')
-parser.add_argument('--mode', type=str, choices=['dcgan', 'wgan', 'lsgan', 'wgan-gp', 'lsgan-gp', 'gan-qp-l1', 'gan-qp-l2'], default='dcgan')
+parser.add_argument('--mode', type=str, choices=['dcgan', 'wgan', 'lsgan', 'wgan-gp', 'lsgan-gp', 'dragan', 'gan-qp-l1', 'gan-qp-l2'], default='dcgan')
 parser.add_argument('--batch_size', type=int, default=64)
 parser.add_argument('--n_workers', type=int, default=4)
 parser.add_argument('--n_iters', type=int, default=100000)
@@ -62,6 +61,16 @@ if run_from_ipython():
 else:
     args = parser.parse_args()
 print(args)
+
+output_path = '{:s}.{:s}'.format(args.mode, args.data)
+if args.ttur:
+    output_path += '.ttur'
+
+if os.path.exists(output_path):
+    shutil.rmtree(output_path, ignore_errors=True)
+os.makedirs(output_path, exist_ok=True)
+os.makedirs('{:s}/checkpoints'.format(output_path), exist_ok=True)
+os.makedirs('{:s}/samples'.format(output_path), exist_ok=True)
 
 if args.ttur:
     args.g_lr = args.lr * args.g_iters / args.g_iters
@@ -142,8 +151,6 @@ gan.init(weights_init)
 fixed_z = torch.randn(args.n_samples, args.z_dim).to(args.device)
 
 writer = SummaryWriter('{:s}/summaries'.format(output_path))
-
-
 
 errD, errG = {}, {}
 for it in range(args.n_iters):

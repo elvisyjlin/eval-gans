@@ -7,13 +7,12 @@ from torchsummary import summary
 
 def gradient_penalty(f, device, real, fake=None):
     def interpolate(a, b=None):
-        if b is None:
-            # # interpolation in DRAGAN
-            # beta = torch.rand_like(a).to(device)
-            # b = a + 0.5 * a.var().sqrt() * beta
-            
+        if type(b) is str and b == 'dragan':
+            # interpolation in DRAGAN
+            b = a + 0.5 * a.std() * torch.rand_like(a).to(device)
+        if type(b) is str and b == 'lsgan-gp':
             # interpolation in LSGAN-GP (improved LSGAN)
-            b = a + 30 * torch.rand_like(a)
+            b = a + 30 * torch.rand_like(a).to(device)
         alpha = torch.rand(a.size(0), 1, 1, 1).to(device)
         inter = a + alpha * (b - a)
         return inter
@@ -130,6 +129,9 @@ class GAN():
         if self.mode == 'lsgan-gp':
             g_loss = F.mse_loss(d_fake, torch.ones_like(d_fake).to(self.device))
             errG['g_loss'] = g_loss.item()
+        if self.mode == 'dragan':
+            g_loss = F.binary_cross_entropy_with_logits(d_fake, torch.ones_like(d_fake).to(self.device))
+            errG['g_loss'] = g_loss.item()
         if self.mode == 'gan-qp-l1':
             g_loss = (d_real - d_fake).mean()
             errG['g_loss'] = g_loss.item()
@@ -185,8 +187,17 @@ class GAN():
         if self.mode == 'lsgan-gp':
             d_loss_real = F.mse_loss(d_real, torch.ones_like(d_real).to(self.device))
             d_loss_fake = F.mse_loss(d_fake, torch.zeros_like(d_fake).to(self.device))
-            d_gp = gradient_penalty(self.netD, self.device, x_real)
+            d_gp = gradient_penalty(self.netD, self.device, x_real, 'lsgan-gp')
             d_loss = d_loss_real + d_loss_fake + 150 * d_gp
+            errD['d_loss_real'] = d_loss_real.item()
+            errD['d_loss_fake'] = d_loss_fake.item()
+            errD['d_gp'] = d_loss.item()
+            errD['d_loss'] = d_loss.item()
+        if self.mode == 'dragan':
+            d_loss_real = F.binary_cross_entropy_with_logits(d_real, torch.ones_like(d_real).to(self.device))
+            d_loss_fake = F.binary_cross_entropy_with_logits(d_fake, torch.zeros_like(d_fake).to(self.device))
+            d_gp = gradient_penalty(self.netD, self.device, x_real, 'dragan')
+            d_loss = d_loss_real + d_loss_fake
             errD['d_loss_real'] = d_loss_real.item()
             errD['d_loss_fake'] = d_loss_fake.item()
             errD['d_gp'] = d_loss.item()
