@@ -36,7 +36,7 @@ class ImageFolder(data.Dataset):
         img = self.loader(self.imgs[index])
         if self.transform is not None:
             img = self.transform(img)
-        return img
+        return img, 0
     
     def __len__(self):
         return len(self.imgs)
