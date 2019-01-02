@@ -36,7 +36,7 @@ class ImageFolder(data.Dataset):
         img = self.loader(self.imgs[index])
         if self.transform is not None:
             img = self.transform(img)
-        return torch.tensor(img)
+        return img
     
     def __len__(self):
         return len(self.imgs)
