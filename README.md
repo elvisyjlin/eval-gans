@@ -69,3 +69,9 @@ GAN-QP-L2
 ```bash
 CUDA_VISIBLE_DEVICES=0 python3 train.py --mode gan-qp-l2 --data celeba --d_iters 2 --g_iters 1 --gpu --ttur
 ```
+
+## Scripts for Experiment
+
+```bash
+./exp.sh [GPU_ID] [MODE] [DATA] [TTUR]
+```

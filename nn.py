@@ -30,9 +30,53 @@ def gradient_penalty(f, device, real, fake=None):
     gp = ((norm - 1.0) ** 2).mean()
     return gp
 
-class Generator(nn.Module):
+class Generator_32(nn.Module):
     def __init__(self):
-        super(Generator, self).__init__()
+        super(Generator_32, self).__init__()
+        self.layers = nn.Sequential(
+            nn.ConvTranspose2d(100, 256, 4, 1, bias=False), 
+            nn.BatchNorm2d(256), 
+            nn.ReLU(inplace=True), 
+            nn.ConvTranspose2d(256, 128, 4, 2, padding=1, bias=False), 
+            nn.BatchNorm2d(128), 
+            nn.ReLU(inplace=True), 
+            nn.ConvTranspose2d(128, 64, 4, 2, padding=1, bias=False), 
+            nn.BatchNorm2d(64), 
+            nn.ReLU(inplace=True), 
+            nn.ConvTranspose2d(64, 64, 3, 1, padding=1, bias=False), 
+            nn.BatchNorm2d(64), 
+            nn.ReLU(inplace=True), 
+            nn.ConvTranspose2d(64, 3, 4, 2, padding=1, bias=False), 
+            nn.Tanh(), 
+        )
+    def forward(self, z):
+        z = z.view(z.size(0), z.size(1), 1, 1)
+        return self.layers(z)
+
+class Discriminator_32(nn.Module):
+    def __init__(self):
+        super(Discriminator_32, self).__init__()
+        self.layers = nn.Sequential(
+            nn.Conv2d(3, 64, 4, 2, padding=1, bias=False), 
+            nn.BatchNorm2d(64), 
+            nn.LeakyReLU(0.2, inplace=True), 
+            nn.Conv2d(64, 64, 3, 1, padding=1, bias=False), 
+            nn.BatchNorm2d(64), 
+            nn.LeakyReLU(0.2, inplace=True), 
+            nn.Conv2d(64, 128, 4, 2, padding=1, bias=False), 
+            nn.BatchNorm2d(128), 
+            nn.LeakyReLU(0.2, inplace=True), 
+            nn.Conv2d(128, 256, 4, 2, padding=1, bias=False), 
+            nn.BatchNorm2d(256), 
+            nn.LeakyReLU(0.2, inplace=True), 
+            nn.Conv2d(256, 1, 4, 1, bias=False), 
+        )
+    def forward(self, x):
+        return self.layers(x).view(-1, )
+
+class Generator_64(nn.Module):
+    def __init__(self):
+        super(Generator_64, self).__init__()
         self.layers = nn.Sequential(
             nn.ConvTranspose2d(100, 512, 4, 1, bias=False), 
             nn.BatchNorm2d(512), 
@@ -56,9 +100,9 @@ class Generator(nn.Module):
         z = z.view(z.size(0), z.size(1), 1, 1)
         return self.layers(z)
 
-class Discriminator(nn.Module):
+class Discriminator_64(nn.Module):
     def __init__(self):
-        super(Discriminator, self).__init__()
+        super(Discriminator_64, self).__init__()
         self.layers = nn.Sequential(
             nn.Conv2d(3, 64, 4, 2, padding=1, bias=False), 
             nn.BatchNorm2d(64), 
@@ -85,9 +129,13 @@ class GAN():
         self.device = args.device
         self.mode = args.mode
         
-        self.netG = Generator()
+        if args.img_size == 32:
+            self.netG = Generator_32()
+            self.netD = Discriminator_32()
+        if args.img_size == 64:
+            self.netG = Generator_64()
+            self.netD = Discriminator_64()
         self.netG.to(self.device)
-        self.netD = Discriminator()
         self.netD.to(self.device)
         self.optimG = optim.Adam(self.netG.parameters(), lr=args.g_lr, betas=args.g_betas)
         self.optimD = optim.Adam(self.netD.parameters(), lr=args.d_lr, betas=args.d_betas)

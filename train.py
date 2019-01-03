@@ -14,16 +14,17 @@ from helpers import run_from_ipython
 from nn import GAN
 from tensorboardX import SummaryWriter
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_path', type=str, default='/share/data/celeba')
-parser.add_argument('--data', type=str, choices=['celeba', 'cifar-10', 'lsun-bedroom'], default='celeba')
+parser.add_argument('--data', type=str, choices=['celeba', 'cifar-10', 'lsun-bed'], default='celeba')
 parser.add_argument('--mode', type=str, choices=['dcgan', 'wgan', 'lsgan', 'wgan-gp', 'lsgan-gp', 'dragan', 'gan-qp-l1', 'gan-qp-l2'], default='dcgan')
 parser.add_argument('--batch_size', type=int, default=64)
 parser.add_argument('--n_workers', type=int, default=4)
 parser.add_argument('--n_iters', type=int, default=100000)
 parser.add_argument('--d_iters', type=int, default=1)
 parser.add_argument('--g_iters', type=int, default=1)
-parser.add_argument('--img_size', type=int, default=64)
+parser.add_argument('--img_size', type=int, choices=[32, 64], default=64)
 parser.add_argument('--z_dim', type=int, default=100)
 parser.add_argument('--lr', type=int, default=0.0002)
 parser.add_argument('--b1', type=int, default=0.5)
@@ -71,6 +72,10 @@ if os.path.exists(output_path):
 os.makedirs(output_path, exist_ok=True)
 os.makedirs('{:s}/checkpoints'.format(output_path), exist_ok=True)
 os.makedirs('{:s}/samples'.format(output_path), exist_ok=True)
+
+
+# In[2]:
+
 
 if args.ttur:
     args.g_lr = args.lr * args.g_iters / args.g_iters
@@ -132,9 +137,8 @@ if args.data == 'celeba':
     dataset = ImageFolder(args.data_path, transform)
 if args.data == 'cifar-10':
     dataset = datasets.CIFAR10(args.data_path, train=True, transform=transform, target_transform=None, download=True)
-if args.data == 'lsun-bedroom':
+if args.data == 'lsun-bed':
     dataset = datasets.LSUN(args.data_path, classes=['bedroom_train'], transform=transform, target_transform=None)
-#     dataset = datasets.LSUN(args.data_path, classes=['bedroom_val'], transform=transform, target_transform=None)
 print('# of images in training set:', len(dataset))
 dataloader = data.DataLoader(
     dataset, 
@@ -151,6 +155,7 @@ gan.init(weights_init)
 fixed_z = torch.randn(args.n_samples, args.z_dim).to(args.device)
 
 writer = SummaryWriter('{:s}/summaries'.format(output_path))
+
 
 errD, errG = {}, {}
 for it in range(args.n_iters):
