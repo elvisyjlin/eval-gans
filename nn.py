@@ -136,6 +136,9 @@ class GAN():
         if self.mode == 'gan-qp-l2':
             g_loss = (d_real - d_fake).mean()
             errG['g_loss'] = g_loss.item()
+        if self.mode == 'rsgan':
+            g_loss = F.binary_cross_entropy_with_logits(d_fake-d_real, torch.ones_like(d_fake).to(self.device))
+            errG['g_loss'] = g_loss.item()
         
         self.optimG.zero_grad()
         g_loss.backward()
@@ -204,6 +207,9 @@ class GAN():
             d_loss = (-d_loss_ + 0.5 * d_loss_**2 / d_norm).mean()
             errD['d_loss_'] = d_loss_.mean().item()
             errD['d_norm'] = d_norm.item()
+            errD['d_loss'] = d_loss.item()
+        if self.mode == 'rsgan':
+            d_loss = F.binary_cross_entropy_with_logits(d_real-d_fake, torch.ones_like(d_real).to(self.device))
             errD['d_loss'] = d_loss.item()
         
         self.optimD.zero_grad()

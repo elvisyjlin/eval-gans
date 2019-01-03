@@ -16,7 +16,7 @@ from tensorboardX import SummaryWriter
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_path', type=str, default='/share/data/celeba')
 parser.add_argument('--data', type=str, choices=['celeba', 'cifar-10', 'lsun-bedrooms'], default='celeba')
-parser.add_argument('--mode', type=str, choices=['dcgan', 'lsgan', 'wgan', 'lsgan-gp', 'wgan-gp', 'gan-qp-l1', 'gan-qp-l2'], default='dcgan')
+parser.add_argument('--mode', type=str, choices=['dcgan', 'lsgan', 'wgan', 'lsgan-gp', 'wgan-gp', 'gan-qp-l1', 'gan-qp-l2', 'rsgan'], default='dcgan')
 parser.add_argument('--batch_size', type=int, default=64)
 parser.add_argument('--n_workers', type=int, default=4)
 parser.add_argument('--n_iters', type=int, default=100000)
