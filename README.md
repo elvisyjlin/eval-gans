@@ -16,7 +16,7 @@ pip3 install -r requirements.txt
 ## To Start the Tensorboard
 
 ```bash
-tensorboard --logdir=.
+tensorboard --logdir=out/
 ```
 
 

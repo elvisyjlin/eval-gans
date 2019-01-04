@@ -5,6 +5,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchsummary import summary
 
+def clip_weights(net, value=0.01):
+    for p in net.parameters():
+        p.data.clamp_(-value, value)
+
 def gradient_penalty(f, device, real, fake=None):
     def interpolate(a, b=None):
         if type(b) is str and b == 'dragan':
@@ -193,6 +197,9 @@ class GAN():
         return errG
     
     def trainD(self, x_real, z):
+        if self.mode == 'wgan':
+            clip_weights(self.netD, 0.01)
+        
         x_fake = self.netG(z).detach()
         d_real = self.netD(x_real)
         d_fake = self.netD(x_fake)

@@ -14,7 +14,6 @@ from helpers import run_from_ipython
 from nn import GAN
 from tensorboardX import SummaryWriter
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_path', type=str, default='/share/data/celeba')
 parser.add_argument('--data', type=str, choices=['celeba', 'cifar-10', 'lsun-bed'], default='celeba')
@@ -37,45 +36,19 @@ parser.add_argument('--save_interval', type=int, default=1000)
 parser.add_argument('--eval_interval', type=int, default=1000)
 parser.add_argument('--ttur', action='store_true')
 parser.add_argument('--gpu', action='store_true')
-if run_from_ipython():
-    # arguments when running in the Notebook
-    args = parser.parse_args([
-#         # CelebA
-#         '--data_path', '/share/data/celeba', 
-#         '--data', 'celeba', 
-#         # LSUN bedroom
-#         '--data_path', '/share/data/lsun', 
-#         '--data', 'lsun-bedroom', 
-        # CIFAR-10
-        '--data_path', '/share/data/cifar-10', 
-        '--data', 'cifar-10', 
-        
-        # DCGAN
-        '--mode', 'dcgan', 
-        '--d_iters', '1', 
-        '--g_iters', '2'
-    ])
-#     import matplotlib
-#     %matplotlib inline
-#     import matplotlib.pyplot as plt
-    get_ipython().run_line_magic('env', 'CUDA_VISIBLE_DEVICES=3')
-else:
-    args = parser.parse_args()
+args = parser.parse_args()
 print(args)
 
-output_path = '{:s}.{:s}'.format(args.mode, args.data)
+output_path = 'out/{:s}.{:s}'.format(args.mode, args.data)
 if args.ttur:
     output_path += '.ttur'
 
 if os.path.exists(output_path):
     shutil.rmtree(output_path, ignore_errors=True)
+os.makedirs('out', exist_ok=True)
 os.makedirs(output_path, exist_ok=True)
 os.makedirs('{:s}/checkpoints'.format(output_path), exist_ok=True)
 os.makedirs('{:s}/samples'.format(output_path), exist_ok=True)
-
-
-# In[2]:
-
 
 if args.ttur:
     args.g_lr = args.lr * args.g_iters / args.g_iters
@@ -109,10 +82,6 @@ def weights_init(m):
     elif isinstance(m, nn.BatchNorm2d):
         m.weight.data.normal_(1.0, 0.02)
         m.bias.data.fill_(0)
-
-def clamp_weights(net, value=0.01):
-    for p in net.parameters():
-        p.data.clamp_(-value, value)
 
 def make_trainable(net, val):
     for p in net.parameters(): # reset requires_grad
@@ -156,13 +125,10 @@ fixed_z = torch.randn(args.n_samples, args.z_dim).to(args.device)
 
 writer = SummaryWriter('{:s}/summaries'.format(output_path))
 
-
 errD, errG = {}, {}
 for it in range(args.n_iters):
     gan.train()
     for _ in range(args.d_iters):
-        if args.mode == 'wgan':
-            clamp_weights(gan.netD, 0.01)
         x_sample = next(data).to(args.device)
         z_sample = torch.randn(len(x_sample), args.z_dim).to(args.device)
         errD = gan.trainD(x_sample, z_sample)
