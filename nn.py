@@ -141,8 +141,13 @@ class GAN():
             self.netD = Discriminator_64()
         self.netG.to(self.device)
         self.netD.to(self.device)
-        self.optimG = optim.Adam(self.netG.parameters(), lr=args.g_lr, betas=args.g_betas)
-        self.optimD = optim.Adam(self.netD.parameters(), lr=args.d_lr, betas=args.d_betas)
+        
+        self.optimG = None
+        if hasattr(args, 'g_lr'):
+            self.optimG = optim.Adam(self.netG.parameters(), lr=args.g_lr, betas=args.g_betas)
+        self.optimD = None
+        if hasattr(args, 'd_lr'):
+            self.optimD = optim.Adam(self.netD.parameters(), lr=args.d_lr, betas=args.d_betas)
         self.vardict = {
             'netG': self.netG, 
             'netD': self.netD, 
@@ -292,7 +297,8 @@ class GAN():
     def load(self, file):
         states = torch.load(file)
         for name in states:
-            self.vardict[name].load_state_dict(states[name])
+            if self.vardict[name] is not None:
+                self.vardict[name].load_state_dict(states[name])
     
     def train(self):
         self.netG.train()
