@@ -266,18 +266,18 @@ class GAN():
             errD['d_gp'] = d_loss.item()
             errD['d_loss'] = d_loss.item()
         if self.mode == 'gan-qp-l1':
-            d_loss = d_real - d_fake
+            d_loss_ = d_real - d_fake
             d_norm = 10 * (x_real - x_fake).abs().view(x_real.size(0), -1).mean(dim=1, keepdim=True)
             d_loss = (-d_loss_ + 0.5 * d_loss_**2 / d_norm).mean()
-            errD['d_loss_'] = d_loss_.mean().item()
-            errD['d_norm'] = d_norm.item()
+            errD['mean d_loss_'] = d_loss_.mean().item()
+            errD['mean d_norm'] = d_norm.mean().item()
             errD['d_loss'] = d_loss.item()
         if self.mode == 'gan-qp-l2':
             d_loss_ = d_real - d_fake
             d_norm = 10 * (x_real - x_fake).pow(2).view(x_real.size(0), -1).mean(dim=1, keepdim=True).sqrt()
             d_loss = (-d_loss_ + 0.5 * d_loss_**2 / d_norm).mean()
-            errD['d_loss_'] = d_loss_.mean().item()
-            errD['d_norm'] = d_norm.item()
+            errD['mean d_loss_'] = d_loss_.mean().item()
+            errD['mean d_norm'] = d_norm.mean().item()
             errD['d_loss'] = d_loss.item()
         if self.mode == 'rsgan':
             d_loss = F.binary_cross_entropy_with_logits(d_real-d_fake, torch.ones_like(d_real).to(self.device))
