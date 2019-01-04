@@ -2,9 +2,11 @@ import argparse
 import numpy as np
 import os
 import random
+import shutil
 import torch
 import torch.nn as nn
 import torch.utils.data as data
+import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from data import ImageFolder
@@ -15,14 +17,14 @@ from tensorboardX import SummaryWriter
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_path', type=str, default='/share/data/celeba')
-parser.add_argument('--data', type=str, choices=['celeba', 'cifar-10', 'lsun-bedrooms'], default='celeba')
-parser.add_argument('--mode', type=str, choices=['dcgan', 'lsgan', 'wgan', 'lsgan-gp', 'wgan-gp', 'gan-qp-l1', 'gan-qp-l2', 'rsgan'], default='dcgan')
+parser.add_argument('--data', type=str, choices=['celeba', 'cifar-10', 'lsun-bed'], default='celeba')
+parser.add_argument('--mode', type=str, choices=['dcgan', 'wgan', 'lsgan', 'wgan-gp', 'lsgan-gp', 'dragan', 'gan-qp-l1', 'gan-qp-l2', 'rsgan'], default='dcgan')
 parser.add_argument('--batch_size', type=int, default=64)
 parser.add_argument('--n_workers', type=int, default=4)
 parser.add_argument('--n_iters', type=int, default=100000)
 parser.add_argument('--d_iters', type=int, default=1)
 parser.add_argument('--g_iters', type=int, default=1)
-parser.add_argument('--img_size', type=int, default=64)
+parser.add_argument('--img_size', type=int, choices=[32, 64], default=64)
 parser.add_argument('--z_dim', type=int, default=100)
 parser.add_argument('--lr', type=int, default=0.0002)
 parser.add_argument('--b1', type=int, default=0.5)
@@ -38,6 +40,16 @@ parser.add_argument('--gpu', action='store_true')
 if run_from_ipython():
     # arguments when running in the Notebook
     args = parser.parse_args([
+#         # CelebA
+#         '--data_path', '/share/data/celeba', 
+#         '--data', 'celeba', 
+#         # LSUN bedroom
+#         '--data_path', '/share/data/lsun', 
+#         '--data', 'lsun-bedroom', 
+        # CIFAR-10
+        '--data_path', '/share/data/cifar-10', 
+        '--data', 'cifar-10', 
+        
         # DCGAN
         '--mode', 'dcgan', 
         '--d_iters', '1', 
@@ -52,9 +64,18 @@ else:
 print(args)
 
 output_path = '{:s}.{:s}'.format(args.mode, args.data)
+if args.ttur:
+    output_path += '.ttur'
 
+if os.path.exists(output_path):
+    shutil.rmtree(output_path, ignore_errors=True)
+os.makedirs(output_path, exist_ok=True)
 os.makedirs('{:s}/checkpoints'.format(output_path), exist_ok=True)
 os.makedirs('{:s}/samples'.format(output_path), exist_ok=True)
+
+
+# In[2]:
+
 
 if args.ttur:
     args.g_lr = args.lr * args.g_iters / args.g_iters
@@ -99,7 +120,7 @@ def make_trainable(net, val):
 
 def loop(iterable):
     while True:
-        for x in iter(iterable): yield x
+        for x, _ in iter(iterable): yield x
 
 def add_scalar_dict(writer, scalar_dict, iteration, directory=None):
     for key in scalar_dict:
@@ -112,7 +133,13 @@ transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
 ])
-dataset = ImageFolder(args.data_path, transform)
+if args.data == 'celeba':
+    dataset = ImageFolder(args.data_path, transform)
+if args.data == 'cifar-10':
+    dataset = datasets.CIFAR10(args.data_path, train=True, transform=transform, target_transform=None, download=True)
+if args.data == 'lsun-bed':
+    dataset = datasets.LSUN(args.data_path, classes=['bedroom_train'], transform=transform, target_transform=None)
+print('# of images in training set:', len(dataset))
 dataloader = data.DataLoader(
     dataset, 
     batch_size=args.batch_size, 
@@ -120,6 +147,7 @@ dataloader = data.DataLoader(
     drop_last=True, 
     num_workers=args.n_workers
 )
+print('# of batches per epoch:', len(dataloader))
 data = loop(dataloader)
 
 gan = GAN(args)
@@ -128,17 +156,16 @@ fixed_z = torch.randn(args.n_samples, args.z_dim).to(args.device)
 
 writer = SummaryWriter('{:s}/summaries'.format(output_path))
 
+
 errD, errG = {}, {}
 for it in range(args.n_iters):
     gan.train()
-    make_trainable(gan.netD, True)
     for _ in range(args.d_iters):
         if args.mode == 'wgan':
             clamp_weights(gan.netD, 0.01)
         x_sample = next(data).to(args.device)
         z_sample = torch.randn(len(x_sample), args.z_dim).to(args.device)
         errD = gan.trainD(x_sample, z_sample)
-    make_trainable(gan.netD, False)
     for _ in range(args.g_iters):
         x_sample = next(data).to(args.device)
         z_sample = torch.randn(len(x_sample), args.z_dim).to(args.device)

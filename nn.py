@@ -7,13 +7,12 @@ from torchsummary import summary
 
 def gradient_penalty(f, device, real, fake=None):
     def interpolate(a, b=None):
-        if b is None:
-            # # interpolation in DRAGAN
-            # beta = torch.rand_like(a).to(device)
-            # b = a + 0.5 * a.var().sqrt() * beta
-            
+        if type(b) is str and b == 'dragan':
+            # interpolation in DRAGAN
+            b = a + 0.5 * a.std() * torch.rand_like(a).to(device)
+        if type(b) is str and b == 'lsgan-gp':
             # interpolation in LSGAN-GP (improved LSGAN)
-            b = a + 30 * torch.rand_like(a)
+            b = a + 30 * torch.rand_like(a).to(device)
         alpha = torch.rand(a.size(0), 1, 1, 1).to(device)
         inter = a + alpha * (b - a)
         return inter
@@ -31,9 +30,53 @@ def gradient_penalty(f, device, real, fake=None):
     gp = ((norm - 1.0) ** 2).mean()
     return gp
 
-class Generator(nn.Module):
+class Generator_32(nn.Module):
     def __init__(self):
-        super(Generator, self).__init__()
+        super(Generator_32, self).__init__()
+        self.layers = nn.Sequential(
+            nn.ConvTranspose2d(100, 256, 4, 1, bias=False), 
+            nn.BatchNorm2d(256), 
+            nn.ReLU(inplace=True), 
+            nn.ConvTranspose2d(256, 128, 4, 2, padding=1, bias=False), 
+            nn.BatchNorm2d(128), 
+            nn.ReLU(inplace=True), 
+            nn.ConvTranspose2d(128, 64, 4, 2, padding=1, bias=False), 
+            nn.BatchNorm2d(64), 
+            nn.ReLU(inplace=True), 
+            nn.ConvTranspose2d(64, 64, 3, 1, padding=1, bias=False), 
+            nn.BatchNorm2d(64), 
+            nn.ReLU(inplace=True), 
+            nn.ConvTranspose2d(64, 3, 4, 2, padding=1, bias=False), 
+            nn.Tanh(), 
+        )
+    def forward(self, z):
+        z = z.view(z.size(0), z.size(1), 1, 1)
+        return self.layers(z)
+
+class Discriminator_32(nn.Module):
+    def __init__(self):
+        super(Discriminator_32, self).__init__()
+        self.layers = nn.Sequential(
+            nn.Conv2d(3, 64, 4, 2, padding=1, bias=False), 
+            nn.BatchNorm2d(64), 
+            nn.LeakyReLU(0.2, inplace=True), 
+            nn.Conv2d(64, 64, 3, 1, padding=1, bias=False), 
+            nn.BatchNorm2d(64), 
+            nn.LeakyReLU(0.2, inplace=True), 
+            nn.Conv2d(64, 128, 4, 2, padding=1, bias=False), 
+            nn.BatchNorm2d(128), 
+            nn.LeakyReLU(0.2, inplace=True), 
+            nn.Conv2d(128, 256, 4, 2, padding=1, bias=False), 
+            nn.BatchNorm2d(256), 
+            nn.LeakyReLU(0.2, inplace=True), 
+            nn.Conv2d(256, 1, 4, 1, bias=False), 
+        )
+    def forward(self, x):
+        return self.layers(x).view(-1, )
+
+class Generator_64(nn.Module):
+    def __init__(self):
+        super(Generator_64, self).__init__()
         self.layers = nn.Sequential(
             nn.ConvTranspose2d(100, 512, 4, 1, bias=False), 
             nn.BatchNorm2d(512), 
@@ -57,9 +100,9 @@ class Generator(nn.Module):
         z = z.view(z.size(0), z.size(1), 1, 1)
         return self.layers(z)
 
-class Discriminator(nn.Module):
+class Discriminator_64(nn.Module):
     def __init__(self):
-        super(Discriminator, self).__init__()
+        super(Discriminator_64, self).__init__()
         self.layers = nn.Sequential(
             nn.Conv2d(3, 64, 4, 2, padding=1, bias=False), 
             nn.BatchNorm2d(64), 
@@ -86,9 +129,13 @@ class GAN():
         self.device = args.device
         self.mode = args.mode
         
-        self.netG = Generator()
+        if args.img_size == 32:
+            self.netG = Generator_32()
+            self.netD = Discriminator_32()
+        if args.img_size == 64:
+            self.netG = Generator_64()
+            self.netD = Discriminator_64()
         self.netG.to(self.device)
-        self.netD = Discriminator()
         self.netD.to(self.device)
         self.optimG = optim.Adam(self.netG.parameters(), lr=args.g_lr, betas=args.g_betas)
         self.optimD = optim.Adam(self.netD.parameters(), lr=args.d_lr, betas=args.d_betas)
@@ -129,6 +176,9 @@ class GAN():
             errG['g_loss'] = g_loss.item()
         if self.mode == 'lsgan-gp':
             g_loss = F.mse_loss(d_fake, torch.ones_like(d_fake).to(self.device))
+            errG['g_loss'] = g_loss.item()
+        if self.mode == 'dragan':
+            g_loss = F.binary_cross_entropy_with_logits(d_fake, torch.ones_like(d_fake).to(self.device))
             errG['g_loss'] = g_loss.item()
         if self.mode == 'gan-qp-l1':
             g_loss = (d_real - d_fake).mean()
@@ -188,8 +238,17 @@ class GAN():
         if self.mode == 'lsgan-gp':
             d_loss_real = F.mse_loss(d_real, torch.ones_like(d_real).to(self.device))
             d_loss_fake = F.mse_loss(d_fake, torch.zeros_like(d_fake).to(self.device))
-            d_gp = gradient_penalty(self.netD, self.device, x_real)
+            d_gp = gradient_penalty(self.netD, self.device, x_real, 'lsgan-gp')
             d_loss = d_loss_real + d_loss_fake + 150 * d_gp
+            errD['d_loss_real'] = d_loss_real.item()
+            errD['d_loss_fake'] = d_loss_fake.item()
+            errD['d_gp'] = d_loss.item()
+            errD['d_loss'] = d_loss.item()
+        if self.mode == 'dragan':
+            d_loss_real = F.binary_cross_entropy_with_logits(d_real, torch.ones_like(d_real).to(self.device))
+            d_loss_fake = F.binary_cross_entropy_with_logits(d_fake, torch.zeros_like(d_fake).to(self.device))
+            d_gp = gradient_penalty(self.netD, self.device, x_real, 'dragan')
+            d_loss = d_loss_real + d_loss_fake
             errD['d_loss_real'] = d_loss_real.item()
             errD['d_loss_fake'] = d_loss_fake.item()
             errD['d_gp'] = d_loss.item()
