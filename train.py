@@ -14,10 +14,11 @@ from helpers import run_from_ipython
 from nn import GAN
 from tensorboardX import SummaryWriter
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_path', type=str, default='/share/data/celeba')
-parser.add_argument('--data', type=str, choices=['celeba', 'cifar-10', 'lsun-bed'], default='celeba')
-parser.add_argument('--mode', type=str, choices=['dcgan', 'wgan', 'lsgan', 'wgan-gp', 'lsgan-gp', 'dragan', 'gan-qp-l1', 'gan-qp-l2', 'rsgan'], default='dcgan')
+parser.add_argument('--data', type=str, choices=['celeba', 'cifar-10', 'lsun-bed', 'imagenet'], default='celeba')
+parser.add_argument('--mode', type=str, choices=['dcgan', 'wgan', 'lsgan', 'wgan-gp', 'lsgan-gp', 'dragan', 'gan-qp-l1', 'gan-qp-l2'], default='dcgan')
 parser.add_argument('--batch_size', type=int, default=64)
 parser.add_argument('--n_workers', type=int, default=4)
 parser.add_argument('--n_iters', type=int, default=100000)
@@ -39,7 +40,7 @@ parser.add_argument('--gpu', action='store_true')
 args = parser.parse_args()
 print(args)
 
-output_path = 'out/{:s}.{:s}'.format(args.mode, args.data)
+output_path = 'out/{:s}.{:s}.{:d}'.format(args.mode, args.data, args.img_size)
 if args.ttur:
     output_path += '.ttur'
 
@@ -103,11 +104,13 @@ transform = transforms.Compose([
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
 ])
 if args.data == 'celeba':
-    dataset = ImageFolder(args.data_path, transform)
+    dataset = ImageFolder(args.data_path, transform=transform)
 if args.data == 'cifar-10':
-    dataset = datasets.CIFAR10(args.data_path, train=True, transform=transform, target_transform=None, download=True)
+    dataset = datasets.CIFAR10(args.data_path, train=True, transform=transform, download=True)
 if args.data == 'lsun-bed':
-    dataset = datasets.LSUN(args.data_path, classes=['bedroom_train'], transform=transform, target_transform=None)
+    dataset = datasets.LSUN(args.data_path, classes=['bedroom_train'], transform=transform)
+if args.data == 'imagenet':
+    dataset = ImageFolder(args.data_path, transform=transform)
 print('# of images in training set:', len(dataset))
 dataloader = data.DataLoader(
     dataset, 
