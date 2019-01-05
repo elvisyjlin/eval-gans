@@ -288,17 +288,33 @@ class GAN():
         self.optimD.step()
         return errD
     
-    def save(self, file, options=['netG', 'netD', 'optimG', 'optimD']):
+    def save_old(self, file, options=['netG', 'netD', 'optimG', 'optimD']):
         states = {}
         for name in options:
             states[name] = self.vardict[name].state_dict()
         torch.save(states, file)
     
-    def load(self, file):
+    def load_old(self, file):
         states = torch.load(file)
         for name in states:
             if self.vardict[name] is not None:
                 self.vardict[name].load_state_dict(states[name])
+    
+    def save(self, file, options=['netG', 'netD', 'optimG', 'optimD'], data=None):
+        checkpoint = {
+            'weights': {}, 
+            'data': data
+        }
+        for name in options:
+            checkpoint['weights'][name] = self.vardict[name].state_dict()
+        torch.save(checkpoint, file)
+    
+    def load(self, file):
+        checkpoint = torch.load(file)
+        for name in checkpoint['weights']:
+            if self.vardict[name] is not None:
+                self.vardict[name].load_state_dict(checkpoint['weights'][name])
+        return checkpoint['data']
     
     def train(self):
         self.netG.train()

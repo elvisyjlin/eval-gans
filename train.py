@@ -152,5 +152,9 @@ for it in range(args.n_iters):
         x_fake = gan.netG(fixed_z)
         vutils.save_image(x_fake, '{:s}/samples/{:06d}.jpg'.format(output_path, it+1), nrow=8, normalize=True, range=(-1., 1.))
     if (it+1) % args.save_interval == 0:
-        gan.save('{:s}/checkpoints/weights.{:06d}.pth'.format(output_path, it+1))
-
+        gan.save('{:s}/checkpoints/checkpoint.{:06d}.pth'.format(output_path, it+1), options=['netG'])
+        gan.save('{:s}/checkpoints/checkpoint.latest.pth'.format(output_path, it+1), data={
+            'iter': it+1, 'seed': args.seed, 
+            'g_lr': args.g_lr, 'd_lr': args.d_lr, 
+            'g_betas': args.g_betas, 'd_betas': args.d_betas
+        })
