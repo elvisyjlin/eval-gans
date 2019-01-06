@@ -25,7 +25,7 @@ default_transform = transforms.Compose([
     transforms.ToTensor(), 
 ])
 
-class ImageFolder(data.Dataset):
+class PureImageFolder(data.Dataset):
     def __init__(self, root, transform=default_transform, loader=default_loader, 
                  extensions=['.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif']):
         self.transform = transform
@@ -40,3 +40,24 @@ class ImageFolder(data.Dataset):
     
     def __len__(self):
         return len(self.imgs)
+
+class IgnoreLabelDataset(data.Dataset):
+    def __init__(self, orig):
+        self.orig = orig
+
+    def __getitem__(self, index):
+        return self.orig[index][0]
+
+    def __len__(self):
+        return len(self.orig)
+
+class LimitedImageDataset(data.Dataset):
+    def __init__(self, orig, length):
+        self.orig = orig
+        self.length = length
+    
+    def __getitem__(self, index):
+        return self.orig[index]
+    
+    def __len__(self):
+        return self.length

@@ -156,9 +156,9 @@ class GAN():
         }
         
         print('netG')
-        summary(self.netG, (args.z_dim, ), use_gpu=True)
+        summary(self.netG, (args.z_dim, ), use_gpu=args.gpu)
         print('netD')
-        summary(self.netD, (3, args.img_size, args.img_size), use_gpu=True)
+        summary(self.netD, (3, args.img_size, args.img_size), use_gpu=args.gpu)
     
     def init(self, init_fn):
         self.netG.apply(init_fn)

@@ -16,6 +16,8 @@ elif [ "$2" = "gan-qp-l1" ]; then
   command="$command --mode gan-qp-l1 --d_iters 2 --g_iters 1"
 elif [ "$2" = "gan-qp-l2" ]; then
   command="$command --mode gan-qp-l2 --d_iters 2 --g_iters 1"
+elif [ "$2" = "rsgan" ]; then
+  command="$command --mode rsgan --d_iters 1 --g_iters 1"
 else
   echo "Not supported mode: $2"
   exit 1
