@@ -1,6 +1,6 @@
 COMMAND="env CUDA_VISIBLE_DEVICES=2 python3 eval_fid.py --eval_samples 50000 --iter -1 --gpu"
 
-for D in `find out -type d -maxdepth 1 | sort -nr`
+for D in `find out -type d -maxdepth 1 | sort -n`
 do
   if [ ! -d "$D/checkpoints" ]; then
     continue

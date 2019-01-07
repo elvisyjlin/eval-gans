@@ -1,3 +1,4 @@
+import numpy as np
 import os
 import torch
 import torch.utils.data as data
@@ -72,11 +73,12 @@ def read_all_images(path_to_data):
 
 class UnlabeledSTL10(data.Dataset):
     def __init__(self, root, transform=default_transform):
+        self.pil_transform = transforms.ToPILImage()
         self.transform = transform
         self.imgs = read_all_images(os.path.join(root, 'stl10_binary', 'unlabeled_X.bin'))
     
     def __getitem__(self, index):
-        img = self.loader(self.imgs[index])
+        img = self.pil_transform(self.imgs[index])
         if self.transform is not None:
             img = self.transform(img)
         return img, 0
