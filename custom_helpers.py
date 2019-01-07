@@ -1,6 +1,6 @@
 import torchvision.datasets as dsets
 import torchvision.transforms as transforms
-from data import PureImageFolder, IgnoreLabelDataset
+from data import PureImageFolder, IgnoreLabelDataset, UnlabeledSTL10
 
 def get_dataset(dataset_name, img_size):
     transform = transforms.Compose([
@@ -52,6 +52,15 @@ def get_dataset(dataset_name, img_size):
         dataset = dsets.LSUN(
             root='/share/data/lsun', classes=['bedroom_val'], transform=transforms
         )
+    elif dataset_name == 'stl-10.train':
+        dataset = UnlabeledSTL10(
+            root='/share/data/stl-10', transform=transforms
+        )
+    elif dataset_name == 'stl-10.valid':
+        dataset = UnlabeledSTL10(
+            root='/share/data/stl-10', transform=transforms
+        )
+        dataset = LimitedImageDataset(dataset, 50000)
     else:
         raise Exception('Dataset name not found: ' + dataset_name)
     return IgnoreLabelDataset(dataset)

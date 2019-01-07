@@ -1,7 +1,9 @@
 command="env CUDA_VISIBLE_DEVICES=$1 python3 train.py --gpu"
 
-if [ "$2" = "dcgan" ]; then
-  command="$command --mode dcgan --d_iters 1 --g_iters 2"
+if [ "$2" = "mmgan" ]; then
+  command="$command --mode mmgan --d_iters 1 --g_iters 2"
+elif [ "$2" = "nsgan" ]; then
+  command="$command --mode nsgan --d_iters 1 --g_iters 2"
 elif [ "$2" = "wgan" ]; then
   command="$command --mode wgan --d_iters 5 --g_iters 1"
 elif [ "$2" = "lsgan" ]; then
@@ -33,6 +35,8 @@ elif [ "$3" = "imagenet-32" ]; then
   command="$command --data imagenet --data_path /share/data/imagenet/train_32x32 --img_size 32"
 elif [ "$3" = "imagenet-64" ]; then
   command="$command --data imagenet --data_path /share/data/imagenet/train_64x64 --img_size 64"
+elif [ "$3" = "stl-10" ]; then
+  command="$command --data stl-10 --data_path /share/data/stl-10 --img_size 96"
 else
   echo "Not supported data: $3"
   exit 1

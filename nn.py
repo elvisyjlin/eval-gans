@@ -128,6 +128,56 @@ class Discriminator_64(nn.Module):
     def forward(self, x):
         return self.layers(x).view(-1, )
 
+class Generator_96(nn.Module):
+    def __init__(self):
+        super(Generator_96, self).__init__()
+        self.layers = nn.Sequential(
+            nn.ConvTranspose2d(100, 512, 6, 1, bias=False), 
+            nn.BatchNorm2d(512), 
+            nn.ReLU(inplace=True), 
+            nn.ConvTranspose2d(512, 256, 4, 2, padding=1, bias=False), 
+            nn.BatchNorm2d(256), 
+            nn.ReLU(inplace=True), 
+            nn.ConvTranspose2d(256, 128, 4, 2, padding=1, bias=False), 
+            nn.BatchNorm2d(128), 
+            nn.ReLU(inplace=True), 
+            nn.ConvTranspose2d(128, 64, 4, 2, padding=1, bias=False), 
+            nn.BatchNorm2d(64), 
+            nn.ReLU(inplace=True), 
+            nn.ConvTranspose2d(64, 64, 3, 1, padding=1, bias=False), 
+            nn.BatchNorm2d(64), 
+            nn.ReLU(inplace=True), 
+            nn.ConvTranspose2d(64, 3, 4, 2, padding=1, bias=False), 
+            nn.Tanh(), 
+        )
+    def forward(self, z):
+        z = z.view(z.size(0), z.size(1), 1, 1)
+        return self.layers(z)
+
+class Discriminator_96(nn.Module):
+    def __init__(self):
+        super(Discriminator_96, self).__init__()
+        self.layers = nn.Sequential(
+            nn.Conv2d(3, 64, 4, 2, padding=1, bias=False), 
+            nn.BatchNorm2d(64), 
+            nn.LeakyReLU(0.2, inplace=True), 
+            nn.Conv2d(64, 64, 3, 1, padding=1, bias=False), 
+            nn.BatchNorm2d(64), 
+            nn.LeakyReLU(0.2, inplace=True), 
+            nn.Conv2d(64, 128, 4, 2, padding=1, bias=False), 
+            nn.BatchNorm2d(128), 
+            nn.LeakyReLU(0.2, inplace=True), 
+            nn.Conv2d(128, 256, 4, 2, padding=1, bias=False), 
+            nn.BatchNorm2d(256), 
+            nn.LeakyReLU(0.2, inplace=True), 
+            nn.Conv2d(256, 512, 4, 2, padding=1, bias=False), 
+            nn.BatchNorm2d(512), 
+            nn.LeakyReLU(0.2, inplace=True), 
+            nn.Conv2d(512, 1, 6, 1, bias=False), 
+        )
+    def forward(self, x):
+        return self.layers(x).view(-1, )
+
 class GAN():
     def __init__(self, args):
         self.device = args.device
@@ -139,6 +189,9 @@ class GAN():
         if args.img_size == 64:
             self.netG = Generator_64()
             self.netD = Discriminator_64()
+        if args.img_size == 96:
+            self.netG = Generator_96()
+            self.netD = Discriminator_96()
         self.netG.to(self.device)
         self.netD.to(self.device)
         
@@ -170,7 +223,10 @@ class GAN():
         d_fake = self.netD(x_fake)
         
         errG = {}
-        if self.mode == 'dcgan':
+        if self.mode == 'mmgan':
+            g_loss = -F.binary_cross_entropy_with_logits(d_fake, torch.zeros_like(d_fake).to(self.device))
+            errG['g_loss'] = g_loss.item()
+        if self.mode == 'nsgan':
             g_loss = F.binary_cross_entropy_with_logits(d_fake, torch.ones_like(d_fake).to(self.device))
             errG['g_loss'] = g_loss.item()
         if self.mode == 'wgan':
@@ -213,7 +269,14 @@ class GAN():
         d_fake = self.netD(x_fake)
         
         errD = {}
-        if self.mode == 'dcgan':
+        if self.mode == 'mmgan':
+            d_loss_real = F.binary_cross_entropy_with_logits(d_real, torch.ones_like(d_real).to(self.device))
+            d_loss_fake = F.binary_cross_entropy_with_logits(d_fake, torch.zeros_like(d_fake).to(self.device))
+            d_loss = d_loss_real + d_loss_fake
+            errD['d_loss_real'] = d_loss_real.item()
+            errD['d_loss_fake'] = d_loss_fake.item()
+            errD['d_loss'] = d_loss.item()
+        if self.mode == 'nsgan':
             d_loss_real = F.binary_cross_entropy_with_logits(d_real, torch.ones_like(d_real).to(self.device))
             d_loss_fake = F.binary_cross_entropy_with_logits(d_fake, torch.zeros_like(d_fake).to(self.device))
             d_loss = d_loss_real + d_loss_fake

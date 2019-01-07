@@ -61,3 +61,25 @@ class LimitedImageDataset(data.Dataset):
     
     def __len__(self):
         return self.length
+
+# https://github.com/mttk/STL10
+def read_all_images(path_to_data):
+    with open(path_to_data, 'rb') as f:
+        everything = np.fromfile(f, dtype=np.uint8)
+        images = np.reshape(everything, (-1, 3, 96, 96))
+        images = np.transpose(images, (0, 3, 2, 1))
+        return images
+
+class UnlabeledSTL10(data.Dataset):
+    def __init__(self, root, transform=default_transform):
+        self.transform = transform
+        self.imgs = read_all_images(os.path.join(root, 'stl10_binary', 'unlabeled_X.bin'))
+    
+    def __getitem__(self, index):
+        img = self.loader(self.imgs[index])
+        if self.transform is not None:
+            img = self.transform(img)
+        return img, 0
+    
+    def __len__(self):
+        return len(self.imgs)
