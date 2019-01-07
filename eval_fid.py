@@ -24,7 +24,7 @@ parser.add_argument('--z_dim', type=int, default=100)
 parser.add_argument('--seed', type=int, default=1234)
 parser.add_argument('--iter', type=int, default=100000)
 parser.add_argument('--eval_samples', type=int, default=50000)
-parser.add_argument('--is_split', type=int, default=10)
+parser.add_argument('--fid_splits', type=int, default=10)
 parser.add_argument('--eval_fid_data', type=str, choices=['celeba.train.64', 'cifar-10.train.32', 'lsun-bed.train.64', 'imagenet.train.32', 'imagenet.train.64'])
 parser.add_argument('--ttur', action='store_true')
 parser.add_argument('--gpu', action='store_true')
@@ -81,7 +81,7 @@ for model_path in model_paths:
     x_fake = np.concatenate(x_fake)
 
     print("Calculating Frechet Inception Distance...")
-    fid_mean, fid_std = FID.compute(x_fake, args.eval_fid_data, batch_size=64, splits=10)
+    fid_mean, fid_std = FID.compute(x_fake, args.eval_fid_data, batch_size=64, splits=args.fid_splits)
     print(fid_mean, fid_std)
     eval_result[model_path] = (fid_mean, fid_std)
 

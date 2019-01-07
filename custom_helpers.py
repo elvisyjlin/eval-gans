@@ -46,19 +46,19 @@ def get_dataset(dataset_name, img_size):
         dataset = LimitedImageDataset(dataset, 50000)
     elif dataset_name == 'lsun-bed.train':
         dataset = dsets.LSUN(
-            root='/share/data/lsun', classes=['bedroom_train'], transform=transforms
+            root='/share/data/lsun', classes=['bedroom_train'], transform=transform
         )
     elif dataset_name == 'lsun-bed.valid':
         dataset = dsets.LSUN(
-            root='/share/data/lsun', classes=['bedroom_val'], transform=transforms
+            root='/share/data/lsun', classes=['bedroom_val'], transform=transform
         )
     elif dataset_name == 'stl-10.train':
         dataset = UnlabeledSTL10(
-            root='/share/data/stl-10', transform=transforms
+            root='/share/data/stl-10', transform=transform
         )
     elif dataset_name == 'stl-10.valid':
         dataset = UnlabeledSTL10(
-            root='/share/data/stl-10', transform=transforms
+            root='/share/data/stl-10', transform=transform
         )
         dataset = LimitedImageDataset(dataset, 50000)
     else:

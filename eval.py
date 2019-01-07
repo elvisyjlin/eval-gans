@@ -24,7 +24,7 @@ parser.add_argument('--z_dim', type=int, default=100)
 parser.add_argument('--seed', type=int, default=1234)
 parser.add_argument('--iter', type=int, default=100000)
 parser.add_argument('--eval_samples', type=int, default=50000)
-parser.add_argument('--is_split', type=int, default=10)
+parser.add_argument('--is_splits', type=int, default=10)
 parser.add_argument('--ttur', action='store_true')
 parser.add_argument('--gpu', action='store_true')
 args = parser.parse_args()
@@ -80,7 +80,7 @@ for model_path in model_paths:
     x_fake = np.concatenate(x_fake)
 
     print("Calculating Inception Score...")
-    is_mean, is_std = IS.compute(x_fake, batch_size=64, resize=True, splits=10)
+    is_mean, is_std = IS.compute(x_fake, batch_size=64, resize=True, splits=args.is_splits)
     print(is_mean, is_std)
     eval_result[model_path] = (is_mean, is_std)
 

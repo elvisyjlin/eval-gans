@@ -107,11 +107,30 @@ class FrechetInceptionDistance():
         self.inception_model = InceptionV3([block_idx], resize_input=resize, normalize_input=False).to(self.device).eval()
         print('Loaded pretrained weights of Inception v3.')
 
-    def compute(self, imgs1, imgs2, batch_size=32, splits=1, shuffle=False):
+    def compute(self, imgs1, imgs2, batch_size=32, splits=1, shuffle=False, verbose=False):
         """Calculates the FID of two image sets"""
-        act1 = self.get_activations(imgs1, batch_size, True)
-        act2 = self.get_activations(imgs2, batch_size, True)
-        print('# of images:', len(act1), len(act2), ' / # of img1 split:', splits)
+        to_save = False
+        if type(imgs2) is str:
+            mu_file = os.path.join('fid', imgs2 + '.mu.npy')
+            sigma_file = os.path.join('fid', imgs2 + '.sigma.npy')
+            if os.path.exists(mu_file) and os.path.exists(sigma_file):
+                if verbose:
+                    print('Loading mu and sigma from pre-calculated vectors...')
+                m2, s2 = np.load(mu_file), np.load(sigma_file)
+            else:
+                to_save = True
+        if to_save:
+            act1 = self.get_activations(imgs1, batch_size, verbose)
+            act2 = self.get_activations(imgs2, batch_size, verbose)
+            m2, s2 = self.calculate_activation_statistics(act2)
+            print('# of images:', len(act1), len(act2), ' / # of img1 split:', splits)
+            np.save(mu_file, m2)
+            np.save(sigma_file, s2)
+            if verbose:
+                print('Saved mu and sigma as', mu_file, sigma_file)
+        else:
+            act1 = self.get_activations(imgs1, batch_size, verbose)
+            print('# of images:', len(act1), '(Pre-calc)', ' / # of img1 split:', splits)
         print('Calculating FID...')
         
         if shuffle:
@@ -121,7 +140,6 @@ class FrechetInceptionDistance():
         for k in tqdm(range(splits)):
             act1_part = act1[k * (N1 // splits): (k+1) * (N1 // splits), :]
             m1, s1 = self.calculate_activation_statistics(act1_part)
-            m2, s2 = self.calculate_activation_statistics(act2)
             fid_value = calculate_frechet_distance(m1, s1, m2, s2)  # order of 1 and 2 differs slightly
             split_scores.append(fid_value)
         
@@ -189,6 +207,11 @@ if __name__ == '__main__':
     print("Calculating Frechet Inception Distance for CIFAR-10 training set and validation set...")
     print(FID.compute(
 #         'cifar-10.valid.32', 'cifar-10.train.32', 
-        'cifar-10.train.32', 'cifar-10.valid.32', 
-        batch_size=64, splits=10, shuffle=True
+#         'cifar-10.train.32', 'cifar-10.valid.32', 
+#         'cifar-10.valid.32', 'celeba.train.64', 
+#         'cifar-10.valid.32', 'stl-10.train.96', 
+        'cifar-10.valid.32', 'imagenet.train.32', 
+#         'cifar-10.valid.32', 'imagenet.train.64', 
+#         'cifar-10.valid.32', 'lsun-bed.train.64', 
+        batch_size=64, splits=1, shuffle=True, verbose=True
     ))
