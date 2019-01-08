@@ -61,6 +61,8 @@ else:
     args.d_lr = args.lr
 args.g_betas = (args.b1, args.b2)
 args.d_betas = (args.b1, args.b2)
+
+device = torch.device('cuda' if torch.cuda.is_available() and args.gpu else 'cpu')
 n_gpu = torch.cuda.device_count()
 args.device = device
 print('Device:', device, '/', '# of gpu:', n_gpu)
@@ -117,7 +119,7 @@ dataloader = data.DataLoader(
     batch_size=args.batch_size, 
     shuffle=True, 
     drop_last=True, 
-    num_workers=args.n_workers
+   num_workers=args.n_workers
 )
 print('# of batches per epoch:', len(dataloader))
 data = loop(dataloader)
