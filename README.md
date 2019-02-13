@@ -12,8 +12,8 @@ pip3 install -r requirements.txt
 
 ## To Train a
 
-DCGAN
+### DCGAN
 
-```python
+```bash
 CUDA_VISIBLE_DEVICES=0 python3 train.py --mode dcgan --d_iters 1 --g_iters 2
 ```
